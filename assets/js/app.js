@@ -197,6 +197,10 @@
       var empty = $('#assetsEmpty');
       if (empty) empty.style.display = state.assets.length ? 'none' : '';
     }
+    // 流式加载到底后才显示「已经到底」，否则说明还有更多可拉取
+    $$('.gal-foot').forEach(function (f) {
+      f.style.display = (state.feedDone && state.items.length) ? '' : 'none';
+    });
     paintCredits();
   }
 
@@ -324,10 +328,14 @@
     hidePops();
     if (!willShow) return;
     p.hidden = false;
-    var r = anchor.getBoundingClientRect();
+    // 以 .composer 为参照（pop 的 offsetParent）定位，避免视口坐标错位
+    var comp = $('.composer');
     var pr = p.getBoundingClientRect();
-    p.style.left = Math.max(10, Math.min(r.left - 10, window.innerWidth - pr.width - 16)) + 'px';
-    p.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    var left = anchor.offsetLeft;
+    var maxLeft = comp.clientWidth - pr.width - 12;
+    left = Math.max(8, Math.min(left, Math.max(8, maxLeft)));
+    p.style.left = left + 'px';
+    p.style.bottom = (comp.clientHeight - anchor.offsetTop + 8) + 'px';
   }
   $('#modeChip').addEventListener('click', function (e) { e.stopPropagation(); togglePop('#modePop', e.currentTarget); });
   $('#ratioChip').addEventListener('click', function (e) { e.stopPropagation(); togglePop('#ratioPop', e.currentTarget); });
@@ -494,43 +502,65 @@
   })();
 
 
-  /* ---------------- 换一批灵感（公开图库接口） ---------------- */
-  state.feedOffset = 20;
-  function loadFeed(btn) {
+  /* ---------------- 实时灵感库（公开图库接口 · 分页 + 滚动无限加载） ---------------- */
+  state.feedOffset = 0;
+  state.feedLoading = false;
+  state.feedDone = false;
+  state.feedTotal = 0;
+  var FEED_PAGE = 20;
+
+  function loadMoreFeed(btn) {
+    if (state.feedLoading || state.feedDone) return Promise.resolve();
+    state.feedLoading = true;
     if (btn) { btn.textContent = '加载中…'; }
-    fetch('/api/feed?offset=' + state.feedOffset + '&limit=20', { cache: 'no-store' })
+    return fetch('/api/feed?offset=' + state.feedOffset + '&limit=' + FEED_PAGE, { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) throw new Error(d.error || '失败');
-        var seen = {};
-        state.items.forEach(function (i) { seen[i.src] = 1; });
-        var fresh = (d.items || []).filter(function (i) { return !seen[i.src]; });
-        state.items = fresh.concat(state.items);
-        state.feedOffset += 20;
+        var items = d.items || [];
+        if (d.total) state.feedTotal = d.total;
+        if (items.length) {
+          var seen = {};
+          state.items.forEach(function (i) { seen[i.src] = 1; });
+          var fresh = items.filter(function (i) { return !seen[i.src]; });
+          state.items = state.items.concat(fresh);
+          state.feedOffset += FEED_PAGE;
+        }
+        if (items.length < FEED_PAGE) state.feedDone = true;
+        if (state.feedTotal && state.feedOffset >= state.feedTotal) state.feedDone = true;
         render();
-        toast('换了一批 · 新增 ' + fresh.length + ' 个作品');
       })
       .catch(function () {
-        toast('线上版本暂用内置灵感库，本地服务可实时拉取', true);
+        state.feedDone = true;   // 未连接本地服务 / file:// → 停止拉取，保留内置灵感库
+        render();
       })
       .then(function () {
-        if (btn) btn.textContent = '换一批灵感';
+        state.feedLoading = false;
+        if (btn) { btn.textContent = '换一批灵感'; }
       });
   }
 
-  /* 启动时尝试实时拉取公开图库（仅在本地 server.py 运行时生效；失败则静默保留内置灵感库） */
-  function autoLoadFeed() {
-    fetch('/api/feed?offset=0&limit=20', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d && d.ok && d.items && d.items.length) {
-          state.items = d.items;
-          render();
-          toast('已连接灵感图库 · 实时加载 ' + d.items.length + ' 个作品');
-        }
-      })
-      .catch(function () { /* 未连接本地服务 / file:// → 保持内置灵感库 */ });
-  }
+  /* 启动时连续加载，直到有 ~240 个实时作品或被服务端判定到底 */
+  (function bootstrapFeed() {
+    function step() {
+      if (state.feedDone || state.items.length >= 240) return;
+      return loadMoreFeed().then(step);
+    }
+    step();
+  })();
+
+  /* 滚动到底自动加载下一页（仅本地服务在线时有效） */
+  (function infiniteScroll() {
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = setTimeout(function () {
+        ticking = false;
+        var near = (window.innerHeight + window.pageYOffset) >= (document.body.scrollHeight - 600);
+        if (near && (state.view === 'home' || state.view === 'gallery')) loadMoreFeed();
+      }, 120);
+    }, { passive: true });
+  })();
 
   /* ---------------- 启动 ---------------- */
   (function init() {
@@ -545,11 +575,10 @@
     bindViewLinks();
     paintCredits();
     paintSignin();
-    autoLoadFeed();
 
     ['#feedBtn', '#feedBtn2'].forEach(function (id) {
       var b = $(id);
-      if (b) b.addEventListener('click', function () { loadFeed(b); });
+      if (b) b.addEventListener('click', function () { loadMoreFeed(b); });
     });
 
     var signBtn = $('#signBtn');
@@ -570,8 +599,6 @@
     });
     var toCompose = $('#toCompose');
     if (toCompose) toCompose.addEventListener('click', function () { setView('home'); setTimeout(function () { $('#prompt').focus(); }, 420); });
-    var meCompose = $('#meCompose');
-    if (meCompose) meCompose.addEventListener('click', function () { setView('home'); setTimeout(function () { $('#prompt').focus(); }, 420); });
 
     var h = (location.hash || '').replace('#', '');
     if (['home', 'gallery', 'create', 'assets', 'me'].indexOf(h) >= 0) setView(h);

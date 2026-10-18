@@ -187,7 +187,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 /* 下拉 */
 .pop[hidden]{display:none!important}
 .pop{
-  position:absolute;z-index:20;background:#fff;border-radius:14px;
+  position:absolute;z-index:40;background:#fff;border-radius:14px;
   box-shadow:var(--shadow-l),0 0 0 1px var(--line);
   padding:6px;display:flex;flex-direction:column;gap:2px;min-width:172px;
   animation:popIn .14s ease-out;
@@ -212,6 +212,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .banner:hover{transform:translateY(-3px)}
 .banner-media{position:relative;aspect-ratio:16/8.1;border-radius:var(--r-l);overflow:hidden;background:#ece5ff}
 .banner-media img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.banner-media video{width:100%;height:100%;object-fit:cover;display:block}
 .banner:hover .banner-media img{transform:scale(1.03)}
 .banner-media::after{
   content:"";position:absolute;inset:0;
@@ -370,6 +371,8 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 
 /* ---------------- 视图切换 ---------------- */
 .pane[hidden]{display:none!important}
+/* 画廊 / 我的 等页面顶部留出呼吸空间 */
+#pane-gallery,#pane-create,#pane-assets,#pane-me{padding-top:46px}
 
 /* ---------------- 空状态 ---------------- */
 .empty{
@@ -392,7 +395,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   linear-gradient(115deg,#6b4ae6 0%,#9a74f4 52%,#f0a6d8 100%)}
 .profile-card{display:flex;align-items:center;gap:16px;padding:0 24px 20px;margin-top:-38px;position:relative}
 .avatar{
-  width:74px;height:74px;border-radius:22px;background:#fff;color:#5b3fd0;
+  width:88px;height:88px;border-radius:24px;background:#fff;color:#5b3fd0;
   display:grid;place-items:center;font-size:26px;font-weight:800;
   box-shadow:0 10px 24px -12px rgba(76,52,140,.5);border:3px solid #fff;flex:0 0 auto;
   overflow:hidden;
@@ -400,6 +403,14 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .profile-info{display:flex;flex-direction:column;gap:5px;padding-top:26px}
 .profile-info b{font-size:17px;letter-spacing:-.3px}
+.profile-info .uname{
+  background:#fff;color:#3a2a63;padding:3px 12px;border-radius:10px;
+  border:1px solid #ece5ff;box-shadow:0 8px 20px -14px rgba(76,52,140,.6);
+}
+.profile-info .uid{
+  background:#fff;color:#7a5cc9;padding:2px 9px;border-radius:8px;
+  border:1px solid #ece5ff;font-size:11px;font-weight:600;vertical-align:middle;
+}
 .profile-info b span{font-size:11px;color:#9a94ab;font-weight:500;margin-left:4px}
 .profile-sub{font-size:12px;color:var(--muted)}
 
