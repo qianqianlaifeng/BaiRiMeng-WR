@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BaiRiMeng-WR · 最懂设计的 AI 创作空间</title>
+<meta name="description" content="BaiRiMeng-WR —— 从一句提示词到一张成品图，AI 赋能每一个创意的诞生。" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+<div class="dotbg" aria-hidden="true"></div>
+
+<!-- 顶部活动条 -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="spark">✦</span>
+    <span>全新生图引擎上线 · 生成即享双倍灵感值 <b>+50%</b></span>
+    <button class="topbar-pill">立即升级</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- 左侧栏 -->
+  <aside class="rail" id="rail">
+    <a class="brand" href="#home" data-view="home">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.4c1.6 4.3 3.7 6.4 8 8-4.3 1.6-6.4 3.7-8 8-1.6-4.3-3.7-6.4-8-8 4.3-1.6 6.4-3.7 8-8Z" fill="currentColor"/>
+        <circle cx="4.6" cy="18.4" r="1.9" fill="currentColor" opacity=".55"/>
+      </svg>
+      <span class="brand-name">BaiRiMeng<em>-WR</em></span>
+      <span class="brand-beta">beta</span>
+    </a>
+
+    <nav class="nav">
+      <a class="nav-item is-active" href="#home" data-view="home">
+        <svg viewBox="0 0 24 24"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
+        <span>首页</span>
+      </a>
+      <a class="nav-item" href="#gallery" data-view="gallery">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="7" height="9" rx="1.8"/><rect x="13.5" y="4.5" width="7" height="6" rx="1.8"/><rect x="3.5" y="16" width="7" height="3.5" rx="1.6"/><rect x="13.5" y="13" width="7" height="6.5" rx="1.8"/></svg>
+        <span>画廊</span>
+      </a>
+      <a class="nav-item" href="#create" data-view="create">
+        <svg viewBox="0 0 24 24"><path d="M12 3.2c1.4 3.8 3.3 5.7 7 7-3.7 1.4-5.6 3.3-7 7-1.4-3.7-3.3-5.6-7-7 3.7-1.3 5.6-3.2 7-7Z"/><circle cx="5" cy="18.5" r="1.7"/></svg>
+        <span>创作</span>
+      </a>
+      <a class="nav-item" href="#assets" data-view="assets">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="7" height="13" rx="2"/><path d="M13.5 4.5h7v15h-7z"/></svg>
+        <span>素材</span>
+      </a>
+      <a class="nav-item" href="#me" data-view="me">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.9-3.6 3.8-5.4 7.2-5.4S18.3 16.4 19.2 20"/></svg>
+        <span>我的<em class="nav-dot" id="navDot"></em></span>
+      </a>
+    </nav>
+
+    <button class="rail-toggle" id="railToggle" title="收起侧栏">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15"/></svg>
+    </button>
+  </aside>
+
+  <!-- 主区域 -->
+  <main class="main">
+    <div class="hero">
+      <div class="watermark" aria-hidden="true">BAIRIMENG</div>
+
+      <div class="composer" id="composer">
+        <div class="refbar" id="refbar" hidden>
+          <div class="ref-thumb">
+            <img id="refImg" alt="参考图" />
+            <button class="ref-del" id="refDel" title="移除参考图">×</button>
+          </div>
+          <div class="ref-meta">
+            <b>编辑模式</b>
+            <span>已载入参考图，描述你想改的地方即可</span>
+          </div>
+        </div>
+
+        <div class="composer-top">
+          <button class="plus" id="uploadBtn" title="上传参考图 / 进入编辑">
+            <svg viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          </button>
+          <textarea id="prompt" rows="3" placeholder="极简香水广告海报，一支磨砂玻璃方形香水瓶悬浮在浅米色石膏几何台面上，瓶身有细密水雾，侧逆光勾勒玻璃边缘，色调米白与浅杏色，杂志级商业摄影，画面无任何文字"></textarea>
+        </div>
+
+        <div class="composer-bar">
+          <div class="chips">
+            <button class="chip chip-select" id="modeChip">
+              <span class="dot"></span><span id="modeLabel">智能</span>
+              <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
+            <button class="chip chip-tab is-on">图片</button>
+            <button class="chip chip-select" id="ratioChip">
+              <span id="ratioLabel">3:4</span>
+              <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
+            <button class="chip chip-select" id="sizeChip">
+              <span id="sizeLabel">2K · 1张</span>
+              <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
+          </div>
+          <div class="bar-right">
+            <span class="credit"><i>◇</i>630</span>
+            <button class="submit" id="submitBtn" title="生成 (Enter)">
+              <svg viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 下拉面板 -->
+        <div class="pop" id="modePop" hidden>
+          <button data-mode="generate"><b>智能生成</b><span>纯文字出图，快速出片</span></button>
+          <button data-mode="edit"><b>图片编辑</b><span>上传参考图，局部改写</span></button>
+        </div>
+        <div class="pop pop-ratio" id="ratioPop" hidden>
+          <button data-ratio="1:1">1:1 <span>方形</span></button>
+          <button data-ratio="3:4">3:4 <span>竖版</span></button>
+          <button data-ratio="4:3">4:3 <span>横版</span></button>
+          <button data-ratio="2:3">2:3 <span>长竖</span></button>
+          <button data-ratio="9:16">9:16 <span>手机</span></button>
+          <button data-ratio="16:9">16:9 <span>宽屏</span></button>
+        </div>
+        <div class="pop pop-size" id="sizePop" hidden>
+          <button data-size="1K">1K · 1张</button>
+          <button data-size="2K">2K · 1张</button>
+          <button data-size="2Kx2">2K · 2张</button>
+        </div>
+      </div>
+
+      <!-- 横幅 -->
+      <div class="banners" id="banners">
+        <a class="banner" href="#gallery" data-view="gallery">
+          <div class="banner-media">
+            <img src="assets/img/banner-1.jpg" alt="" />
+            <span class="banner-tag">活动</span>
+            <div class="banner-copy">
+              <span class="banner-kicker">BaiRiMeng 创作者激励计划</span>
+              <strong>次元筑梦师</strong>
+              <span class="banner-sub">分享作品，立享每月最高 200,000+ 灵感值</span>
+            </div>
+          </div>
+          <div class="banner-cap">
+            <b>分享作品，立享每月最高 200,000+ 灵感值</b>
+            <span>活动进行中</span>
+          </div>
+        </a>
+
+        <a class="banner" href="#gallery" data-view="gallery">
+          <div class="banner-media">
+            <img src="assets/img/banner-2.jpg" alt="" />
+            <span class="banner-tag alt">精选</span>
+            <div class="banner-copy">
+              <span class="banner-kicker">提示词实验室</span>
+              <strong>一图一提示词</strong>
+              <span class="banner-sub">点开任意作品，看它是怎么写出来的</span>
+            </div>
+            <span class="banner-play"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+          </div>
+          <div class="banner-cap">
+            <b>每张作品都附带完整提示词</b>
+            <span>01:24</span>
+          </div>
+        </a>
+
+        <div class="banner-nav">
+          <button aria-label="上一组"><svg viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button>
+          <button aria-label="下一组"><svg viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 首页 -->
+    <section class="pane" id="pane-home" data-view="home">
+      <div class="gal-head">
+        <div class="gal-title">
+          <h2>为你推荐</h2>
+          <span class="gal-sub" id="galCount">加载中…</span>
+        </div>
+        <div class="gal-filters" id="filters">
+          <button class="fchip is-on" data-tag="全部">全部</button>
+          <button class="fchip" data-tag="海报">海报</button>
+          <button class="fchip" data-tag="品牌">品牌</button>
+          <button class="fchip" data-tag="产品">产品</button>
+          <button class="fchip" data-tag="3D">3D</button>
+          <button class="fchip" data-tag="插画">插画</button>
+          <button class="fchip" data-tag="动漫">动漫</button>
+          <button class="fchip" data-tag="摄影">摄影</button>
+          <button class="fchip" data-tag="设计">设计</button>
+          <button class="fchip feed" id="feedBtn">换一批灵感</button>
+        </div>
+      </div>
+      <div class="masonry" id="masonry"></div>
+      <div class="gal-foot"><span>已经到底啦 · 更多作品持续更新</span></div>
+    </section>
+
+    <!-- 画廊 -->
+    <section class="pane" id="pane-gallery" data-view="gallery" hidden>
+      <div class="gal-head">
+        <div class="gal-title">
+          <h2>全部画廊</h2>
+          <span class="gal-sub" id="galCount2">加载中…</span>
+        </div>
+        <div class="gal-filters" id="filters2">
+          <button class="fchip is-on" data-tag="全部">全部</button>
+          <button class="fchip" data-tag="海报">海报</button>
+          <button class="fchip" data-tag="品牌">品牌</button>
+          <button class="fchip" data-tag="产品">产品</button>
+          <button class="fchip" data-tag="3D">3D</button>
+          <button class="fchip" data-tag="插画">插画</button>
+          <button class="fchip" data-tag="动漫">动漫</button>
+          <button class="fchip" data-tag="摄影">摄影</button>
+          <button class="fchip" data-tag="设计">设计</button>
+          <button class="fchip feed" id="feedBtn">换一批灵感</button>
+        </div>
+      </div>
+      <div class="masonry" id="masonry2"></div>
+      <div class="gal-foot"><span>已经到底啦 · 更多作品持续更新</span></div>
+    </section>
+
+    <!-- 创作台 -->
+    <section class="pane" id="pane-create" data-view="create" hidden>
+      <div class="gal-head">
+        <div class="gal-title">
+          <h2>我的创作</h2>
+          <span class="gal-sub" id="mineCount">还没有作品</span>
+        </div>
+        <button class="fchip" id="toCompose">去写一句提示词</button>
+      </div>
+      <div class="masonry" id="mine"></div>
+      <div class="empty" id="createEmpty">
+        <div class="empty-art">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3.5 15.5 9 11l5 4 3.5-2.5 3 2"/><circle cx="15.5" cy="9" r="1.4"/></svg>
+        </div>
+        <b>创作台还是空的</b>
+        <span>在上方输入框写一句提示词，按回车或点右侧箭头，作品就会出现在这里</span>
+      </div>
+    </section>
+
+    <!-- 素材 -->
+    <section class="pane" id="pane-assets" data-view="assets" hidden>
+      <div class="gal-head">
+        <div class="gal-title"><h2>素材库</h2><span class="gal-sub">收藏的灵感与上传的参考图</span></div>
+        <button class="fchip" id="assetsUploadBtn">上传素材</button>
+      </div>
+      <div class="masonry" id="assets"></div>
+      <div class="empty" id="assetsEmpty">
+        <div class="empty-art">
+          <svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h3l2 2h6A2.5 2.5 0 0 1 20 9.5v8A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5z"/></svg>
+        </div>
+        <b>素材库空着</b>
+        <span>在任意作品上点「以此为参考图编辑」，参考图会自动收进这里</span>
+      </div>
+    </section>
+
+    <!-- 我的 -->
+    <section class="pane" id="pane-me" data-view="me" hidden>
+      <div class="profile">
+        <div class="profile-cover"></div>
+        <div class="profile-card">
+          <div class="avatar">梦</div>
+          <div class="profile-info">
+            <b>造梦师 <span>ID 20261018</span></b>
+            <span class="profile-sub">加入第 1 天 · 保持好奇</span>
+          </div>
+          <button class="btn primary" id="meCompose" style="margin-left:auto">开始创作</button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-k">灵感值</span>
+          <b class="stat-v"><i>◇</i><span id="creditBig">630</span></b>
+          <span class="stat-d">每日签到自动到账</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k">连续签到</span>
+          <b class="stat-v" id="streakInfo">待签到</b>
+          <span class="stat-d" id="signState">今天还没签</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k">我的作品</span>
+          <b class="stat-v" id="meCount">0</b>
+          <span class="stat-d">生成与编辑都会留档</span>
+        </div>
+      </div>
+
+      <div class="signin">
+        <div class="signin-main">
+          <b>每日签到</b>
+          <span>每天第一次进入可领取灵感值，连续签到奖励递增，最高 +90/天</span>
+          <div class="streak-dots" id="streakDots">
+            <span>+30</span><span>+40</span><span>+50</span><span>+60</span><span>+70</span><span>+80</span><span>+90</span>
+          </div>
+        </div>
+        <button class="signin-btn" id="signBtn">立即签到</button>
+      </div>
+
+      <div class="gal-head" style="margin-top:34px">
+        <div class="gal-title"><h2>最近创作</h2><span class="gal-sub">你的全部生成记录</span></div>
+      </div>
+      <div class="masonry" id="mine2"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 提示词弹窗 -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <button class="modal-x" data-close aria-label="关闭">×</button>
+    <div class="modal-media"><img id="mImg" alt="" /></div>
+    <div class="modal-side">
+      <div class="modal-head">
+        <h3 id="mTitle"></h3>
+        <div class="modal-tags" id="mTags"></div>
+      </div>
+      <div class="modal-block">
+        <div class="block-title">提示词 <span>PROMPT</span></div>
+        <p class="prompt-text" id="mPrompt"></p>
+      </div>
+      <div class="modal-params" id="mParams"></div>
+      <div class="modal-actions">
+        <button class="btn primary" id="copyBtn">复制提示词</button>
+        <button class="btn ghost" id="editBtn">以此为参考图编辑</button>
+        <button class="btn ghost" id="reuseBtn">用这段提示词生成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<input type="file" id="fileInput" accept="image/*" hidden />
+
+<script src="data/gallery.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

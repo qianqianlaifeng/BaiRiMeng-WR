@@ -1,0 +1,19 @@
+# Build / working files (not needed for the static site)
+tools/
+mg.json
+mg_*.json
+
+# Screenshots & preview artifacts
+*.png
+!assets/img/**/*.png
+
+# Unused gallery duplicates (only the .jpg variants are referenced)
+assets/img/gallery/*.png
+
+# Local secrets / memory
+.workbuddy-ai/
+
+# Python
+__pycache__/
+*.pyc
+venv/
