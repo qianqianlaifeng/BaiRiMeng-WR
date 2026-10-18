@@ -117,7 +117,7 @@
       '<button class="card-tool" data-act="open" title="查看提示词"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4z"/><path d="M8 10h8M8 14h5"/></svg></button>' +
       '</div>';
     el.innerHTML =
-      '<img src="' + item.src + '" alt="' + (item.title || '作品') + '" loading="lazy" />' +
+      '<img src="' + item.src + '" alt="' + (item.title || '作品') + '" loading="lazy" decoding="async" />' +
       badge + tools +
       '<div class="card-veil"><p class="card-prompt">' + safe + '</p>' +
       '<span class="card-cta">查看提示词</span></div>';
@@ -246,7 +246,7 @@
   /* ---------------- 弹窗 ---------------- */
   function openModal(item) {
     state.current = item;
-    $('#mImg').src = item.src;
+    $('#mImg').src = item.full || item.src;
     $('#mTitle').textContent = item.title || '未命名作品';
     $('#mTags').innerHTML = (item.tags || []).map(function (t) { return '<span>' + t + '</span>'; }).join('');
     $('#mPrompt').textContent = item.prompt || '';
@@ -507,7 +507,7 @@
   state.feedLoading = false;
   state.feedDone = false;
   state.feedTotal = 0;
-  var FEED_PAGE = 20;
+  var FEED_PAGE = 60;
 
   function loadMoreFeed(btn) {
     if (state.feedLoading || state.feedDone) return Promise.resolve();
@@ -524,7 +524,7 @@
           state.items.forEach(function (i) { seen[i.src] = 1; });
           var fresh = items.filter(function (i) { return !seen[i.src]; });
           state.items = state.items.concat(fresh);
-          state.feedOffset += FEED_PAGE;
+          state.feedOffset += items.length;
         }
         if (items.length < FEED_PAGE) state.feedDone = true;
         if (state.feedTotal && state.feedOffset >= state.feedTotal) state.feedDone = true;
@@ -543,7 +543,7 @@
   /* 启动时连续加载，直到有 ~240 个实时作品或被服务端判定到底 */
   (function bootstrapFeed() {
     function step() {
-      if (state.feedDone || state.items.length >= 240) return;
+      if (state.feedDone || state.items.length >= 300) return;
       return loadMoreFeed().then(step);
     }
     step();

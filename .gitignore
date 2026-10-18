@@ -13,6 +13,7 @@ assets/img/gallery/*.png
 # Generated working output (not part of the static deliverable)
 assets/img/generated/
 data/generated.json
+data/thumbcache/
 # Local-only banner video (Pages uses remote fallback source)
 assets/img/banner-1.mp4
 

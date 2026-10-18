@@ -7,6 +7,8 @@
 代理会隐藏具体模型与密钥，前端只拿到图片地址。
 """
 import base64
+import hashlib
+import io
 import json
 import mimetypes
 import os
@@ -14,8 +16,15 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+
+try:
+    from PIL import Image
+    _HAS_PIL = True
+except Exception:
+    _HAS_PIL = False
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 BASE = "https://api.agnes-ai.cn/v1"
@@ -173,6 +182,12 @@ def _remember(items):
 
 # ---------------------------------------------------------------- 灵感流（公开图库接口）
 FEED_URL = "https://www.meigen.ai/api/images"
+THUMB_DIR = os.path.join(ROOT, "data", "thumbcache")
+_ALLOW_HOSTS = ("meigen.ai", "images.meigen.ai", "www.meigen.ai")
+_page_cache = {}          # offset -> (ts, images_list, total)
+_page_lock = threading.Lock()
+FEED_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+           "(KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
 TAG_RULES = [
     (["anime", "manga", "ghibli", "waifu", "二次元", "动漫", "cel-shaded", "chibi", "vtuber"], "动漫"),
     (["poster", "海报"], "海报"),
@@ -196,34 +211,98 @@ def _guess_tags(*parts):
     return tags or ["设计"]
 
 
-def fetch_feed(offset=0, limit=20):
-    """拉取公开图库的提示词 + 图片，转成前端需要的结构（不暴露来源）。"""
-    req = urllib.request.Request(
-        "%s?offset=%d" % (FEED_URL, int(offset)),
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-                 "Accept": "application/json"})
+def _allowed_host(u):
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.loads(r.read().decode("utf-8", "replace"))
-    except Exception as e:
-        return {"ok": False, "error": "拉取失败: %s" % e}
+        h = urllib.parse.urlparse(u).hostname or ""
+    except Exception:
+        return False
+    return any(h == a or h.endswith("." + a) for a in _ALLOW_HOSTS)
+
+
+def _thumb(url, width=480):
+    """下载 → 等比缩放 → 存磁盘缓存，返回 JPEG 字节。无 PIL 时原样返回。"""
+    os.makedirs(THUMB_DIR, exist_ok=True)
+    key = hashlib.sha1(("%s|%d" % (url, width)).encode("utf-8")).hexdigest()
+    path = os.path.join(THUMB_DIR, key + ".jpg")
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return f.read()
+    req = urllib.request.Request(url, headers={"User-Agent": FEED_UA})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        raw = r.read()
+    if _HAS_PIL:
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        if im.width > width:
+            im = im.resize((width, max(1, int(im.height * width / im.width))), Image.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=80, optimize=True)
+        data = buf.getvalue()
+    else:
+        data = raw
+    try:
+        with open(path, "wb") as f:
+            f.write(data)
+    except Exception:
+        pass
+    return data
+
+
+def _meigen_page(offset):
+    """取 meigen 单页（20 条），带 45s 内存缓存，返回 (images_list, total)。"""
+    now = time.time()
+    with _page_lock:
+        c = _page_cache.get(offset)
+        if c and now - c[0] < 45:
+            return c[1], c[2]
+    req = urllib.request.Request("%s?offset=%d" % (FEED_URL, int(offset)),
+                                 headers={"User-Agent": FEED_UA, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.loads(r.read().decode("utf-8", "replace"))
+    imgs = data.get("images") or []
+    total = data.get("totalCount", 0)
+    with _page_lock:
+        _page_cache[offset] = (now, imgs, total)
+    return imgs, total
+
+
+def fetch_feed(offset=0, limit=20):
+    """按条数分页：内部合并多个 meigen 20 条页凑够 limit；图片走缩略图代理。"""
+    limit = max(1, min(int(limit), 120))
     out = []
-    for it in (data.get("images") or [])[:int(limit)]:
-        src = (it.get("images") or [it.get("image")])[0] if it.get("images") or it.get("image") else None
-        if not src:
-            continue
-        prompt = (it.get("prompt") or "").strip()
-        title = (it.get("title") or "").strip().split("\n")[0][:28] or "灵感作品"
-        out.append({
-            "id": "feed-" + str(it.get("id")),
-            "title": title,
-            "tags": _guess_tags(title, prompt),
-            "ratio": "3:4",
-            "prompt": prompt,
-            "src": src,
-        })
-    return {"ok": True, "items": out, "total": data.get("totalCount", 0)}
+    seen = set()
+    total = 0
+    cur = int(offset)
+    pages = 0
+    while len(out) < limit and pages < 8:
+        try:
+            imgs, total = _meigen_page(cur)
+        except Exception as e:
+            if not out:
+                return {"ok": False, "error": "拉取失败: %s" % e}
+            break
+        if not imgs:
+            break
+        for it in imgs:
+            src = (it.get("images") or [it.get("image")])[0] if (it.get("images") or it.get("image")) else None
+            if not src or src in seen:
+                continue
+            seen.add(src)
+            prompt = (it.get("prompt") or "").strip()
+            title = (it.get("title") or "").strip().split("\n")[0][:28] or "灵感作品"
+            out.append({
+                "id": "feed-" + str(it.get("id")),
+                "title": title,
+                "tags": _guess_tags(title, prompt),
+                "ratio": "3:4",
+                "prompt": prompt,
+                "src": "/api/thumb?u=" + urllib.parse.quote(src, safe="") + "&w=480",
+                "full": src,
+            })
+            if len(out) >= limit:
+                break
+        cur += 20
+        pages += 1
+    return {"ok": True, "items": out, "total": total}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -234,13 +313,37 @@ class Handler(SimpleHTTPRequestHandler):
         sys.stdout.write("[%s] %s\n" % (time.strftime("%H:%M:%S"), fmt % args))
 
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", getattr(self, "_cache", "no-store"))
         super().end_headers()
 
     def do_GET(self):
+        self._cache = "no-store"
+        if self.path.startswith("/api/thumb"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            u = (q.get("u") or [""])[0]
+            try:
+                w = int((q.get("w") or ["480"])[0])
+            except Exception:
+                w = 480
+            if not u or not _allowed_host(u):
+                self.send_error(400)
+                return
+            try:
+                data = _thumb(u, w)
+                self._cache = "public, max-age=604800"
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception:
+                # 代理失败就直接 302 到原图，保证不出现破图
+                self.send_response(302)
+                self.send_header("Location", u)
+                self.end_headers()
+            return
         if self.path.startswith("/api/feed"):
-            import urllib.parse as up
-            q = up.parse_qs(up.urlparse(self.path).query)
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             off = int((q.get("offset") or ["0"])[0])
             lim = int((q.get("limit") or ["20"])[0])
             res = fetch_feed(off, lim)
