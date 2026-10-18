@@ -554,6 +554,20 @@
 
     var signBtn = $('#signBtn');
     if (signBtn) signBtn.addEventListener('click', doSignin);
+
+    // 顶部「立即签到」：跳到「我的」并高亮签到卡
+    var topSign = $('#topSign');
+    if (topSign) topSign.addEventListener('click', function () {
+      setView('me');
+      setTimeout(function () {
+        var s = $('.signin');
+        if (!s) return;
+        s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        s.style.transition = 'box-shadow .3s';
+        s.style.boxShadow = '0 0 0 3px #cbb8ff';
+        setTimeout(function () { s.style.boxShadow = ''; }, 1300);
+      }, 460);
+    });
     var toCompose = $('#toCompose');
     if (toCompose) toCompose.addEventListener('click', function () { setView('home'); setTimeout(function () { $('#prompt').focus(); }, 420); });
     var meCompose = $('#meCompose');
