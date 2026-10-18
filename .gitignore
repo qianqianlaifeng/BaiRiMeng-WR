@@ -10,6 +10,14 @@ mg_*.json
 # Unused gallery duplicates (only the .jpg variants are referenced)
 assets/img/gallery/*.png
 
+# Generated working output (not part of the static deliverable)
+assets/img/generated/
+data/generated.json
+
+# Headless dump / scratch
+_dom*.html
+_dom*.txt
+
 # Local secrets / memory
 .workbuddy-ai/
 

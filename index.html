@@ -161,11 +161,6 @@
             <span>01:24</span>
           </div>
         </a>
-
-        <div class="banner-nav">
-          <button aria-label="上一组"><svg viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg></button>
-          <button aria-label="下一组"><svg viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg></button>
-        </div>
       </div>
     </div>
 
@@ -210,7 +205,7 @@
           <button class="fchip" data-tag="动漫">动漫</button>
           <button class="fchip" data-tag="摄影">摄影</button>
           <button class="fchip" data-tag="设计">设计</button>
-          <button class="fchip feed" id="feedBtn">换一批灵感</button>
+          <button class="fchip feed" id="feedBtn2">换一批灵感</button>
         </div>
       </div>
       <div class="masonry" id="masonry2"></div>
@@ -257,7 +252,9 @@
       <div class="profile">
         <div class="profile-cover"></div>
         <div class="profile-card">
-          <div class="avatar">梦</div>
+          <div class="avatar" id="avatarBox">
+            <img src="assets/img/avatar.jpg" alt="造梦师头像" onerror="this.remove();document.getElementById('avatarBox').textContent='梦'" />
+          </div>
           <div class="profile-info">
             <b>造梦师 <span>ID 20261018</span></b>
             <span class="profile-sub">加入第 1 天 · 保持好奇</span>
@@ -300,6 +297,11 @@
       </div>
       <div class="masonry" id="mine2"></div>
     </section>
+
+    <footer class="site-foot">
+      <span class="foot-brand"><i>✦</i> BaiRiMeng-WR</span>
+      <span class="foot-note">每天一张灵感图 · 让创意自然发生</span>
+    </footer>
   </main>
 </div>
 

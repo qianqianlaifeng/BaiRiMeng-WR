@@ -209,7 +209,8 @@
     $$('.nav-item').forEach(function (a) {
       a.classList.toggle('is-active', a.getAttribute('data-view') === name);
     });
-    $('#banners').style.display = name === 'home' ? '' : 'none';
+    var hero = $('.hero');
+    if (hero) hero.style.display = name === 'home' ? '' : 'none';
     if (name === 'me') { paintSignin(); paintCredits(); }
     try { history.replaceState(null, '', '#' + name); } catch (e) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -232,7 +233,7 @@
         if (!b) return;
         $$('.fchip', group).forEach(function (x) { x.classList.toggle('is-on', x === b); });
         var tag = b.getAttribute('data-tag');
-        state.filters[group.id === 'filters2' ? 'gallery' : 'home'] = tag;
+        state.filters[group.id === 'filters2' ? 'gallery' : 'home'] = (tag && tag !== '全部') ? tag : 'all';
         render();
       });
     });
@@ -480,23 +481,7 @@
     }).then(resetBtn, resetBtn);
   }
 
-  /* ---------------- 横幅翻页 ---------------- */
-  (function banners() {
-    var btns = $$('.banner-nav button');
-    var wrap = $('#banners');
-    if (!btns.length || !wrap) return;
-    var cards = $$('.banner', wrap);
-    btns.forEach(function (b, i) {
-      b.addEventListener('click', function () {
-        cards = $$('.banner', wrap);
-        var first = cards.shift();
-        var last = cards.pop();
-        if (i === 0) { wrap.insertBefore(last, wrap.firstChild); }
-        else { wrap.appendChild(first); }
-        cards = $$('.banner', wrap);
-      });
-    });
-  })();
+  /* 横幅左右切换箭头已移除 */
 
   /* ---------------- 侧栏收起 ---------------- */
   (function rail() {
@@ -533,6 +518,20 @@
       });
   }
 
+  /* 启动时尝试实时拉取公开图库（仅在本地 server.py 运行时生效；失败则静默保留内置灵感库） */
+  function autoLoadFeed() {
+    fetch('/api/feed?offset=0&limit=20', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok && d.items && d.items.length) {
+          state.items = d.items;
+          render();
+          toast('已连接灵感图库 · 实时加载 ' + d.items.length + ' 个作品');
+        }
+      })
+      .catch(function () { /* 未连接本地服务 / file:// → 保持内置灵感库 */ });
+  }
+
   /* ---------------- 启动 ---------------- */
   (function init() {
     state.items = loadData();
@@ -546,6 +545,7 @@
     bindViewLinks();
     paintCredits();
     paintSignin();
+    autoLoadFeed();
 
     ['#feedBtn', '#feedBtn2'].forEach(function (id) {
       var b = $(id);
